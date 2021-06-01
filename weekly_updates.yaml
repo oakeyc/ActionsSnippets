@@ -1,0 +1,53 @@
+name: WeeklyUpdate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 10 * * 1' # weekly
+
+jobs:
+  create-summary:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Set output variables
+      id: vars
+      run: |
+        # using week numbers here so we are less dependent on the actual day we have the meeting
+        echo ::set-output name=week_of::"$(date +%Y-%m-%d)"
+
+    - name: Create file if not made and render
+      run: |
+        year="$(date +%Y)"
+        month="$(date +%m)"
+        if [[ month -lt 4 ]]; then
+          quarter=Q1
+        elif [[ month -lt 7 ]]; then
+          quarter=Q2
+        elif [[ month -lt 10 ]]; then
+          quarter=Q3
+        else
+          quarter=Q4
+        fi
+
+        mkdir -p $year/${quarter}-weekly
+        touch $year/${quarter}-weekly/"$(date +%m-%d)"
+        cat ./templates/weekly >> $year/${quarter}-weekly/"$(date +%m-%d)"
+        echo ${quarter}-weekly/$(date +%m-%d) >> "./$year/$quarter"
+
+        python renderer.py $year $quarter
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v3
+      with:
+        base: main
+        token: ${{ secrets.PAT }} # you have to add a Personal Access Token with read/write
+        commit-message: create summary for ${{ steps.vars.outputs.week_of}}
+        author: <fill in author>
+        title: Weekly summary for ${{ steps.vars.outputs.week_of }}
+        branch: summary-${{ steps.vars.outputs.week_of }}
+        body: |
+          weekly updates
+          cc @<author>
