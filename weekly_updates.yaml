@@ -21,7 +21,7 @@ jobs:
     - name: Create file if not made and render
       run: |
         year="$(date +%Y)"
-        month="$(date +%m)"
+        month="10#$(date +%m)"
         if [[ month -lt 4 ]]; then
           quarter=Q1
         elif [[ month -lt 7 ]]; then
